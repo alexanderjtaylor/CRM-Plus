@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from .forms import SignUpForm
+from .forms import SignUpForm, AddRecordForm
 from .models import Record
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 def home(request):
     records = Record.objects.all()
@@ -46,16 +47,29 @@ def customer_record(request, pk):
         customer_record = Record.objects.get(id=pk)
         return render(request, 'record.html', {'customer_record':customer_record})
     else:
-        messages.success(request, "You must be logged in to view that page.")
+        messages.success(request, "You must be logged in to view that page...")
         return redirect('home')
     
 def delete_record(request, pk):
     if request.user.is_authenticated:
         delete_this = Record.objects.get(id=pk)
         delete_this.delete()
-        messages.success(request, "Successfully deleted.")
+        messages.success(request, "Successfully deleted...")
         return redirect('home')
     else:
         messages.success(request, "You must be logged in to perform that action...")
         return redirect('home')
-    
+
+@csrf_exempt
+def add_record(request):
+    form = AddRecordForm(request.POST or None)
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            if form.is_valid():
+                add_record = form.save()
+                messages.success(request, "Successfully added...")
+                return redirect('home')
+        return render(request, 'add_record.html', {'form':form})
+    else:
+        messages.success(request, "Must be logged in to add records...")
+        return redirect('home')
